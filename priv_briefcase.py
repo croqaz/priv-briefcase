@@ -37,7 +37,8 @@ Users is a dictionary with user_id => usr (pbkdf2 hash with fixed salt), pwd (pb
 	usr_salt, pwd_salt.
 Logs is a dictionary with date-time => user_id, msg (encrypted).
 
-Files are created by 1 user and only that user can decrypt them.
+A user can only decrypt his own files. He can see if there are other users
+	with other files, but cannot know anything about the files.
 Files is a list of: filename (encrypted), hash, salt,  user_id, labels (encrypted),
 	compressed (yes/ no), date_created.
 '''
