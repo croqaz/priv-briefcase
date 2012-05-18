@@ -8,6 +8,7 @@
 	This new version is a little differend from the old version:
 	- the briefcase is a Python Pickle;
 	- the briefcase is accessed with a username and a password;
+	- a user can only access his own files;
 	- all files are encrypted, without exception;
 	- the files are not stored inside the briefcase;
 	- the files are not versioned;
@@ -32,15 +33,23 @@ A briefcase contains 4 tables :
 	logs   : (optional) change logs
 
 System is a dictionary with some metadata.
-
-Users is a dictionary with user_id => usr (pbkdf2 hash with fixed salt), pwd (pbkdf2 hash),
-	usr_salt, pwd_salt.
 Logs is a dictionary with date-time => user_id, msg (encrypted).
+
+Users is a dictionary with :
+	user_id => usr (pbkdf2 hash with fixed salt),
+	pwd (pbkdf2 hash),
+	usr_salt and pwd_salt.
+
+Files dictionary is a list of:
+	filename (encrypted), salt,
+	hash (pbkdf2 with the salt),
+	labels (encrypted),
+	compressed (yes/ no),
+	data (compressed and encrypted),
+	user_id, date_created.
 
 A user can only decrypt his own files. He can see if there are other users
 	with other files, but cannot know anything about the files.
-Files is a list of: filename (encrypted), hash, salt,  user_id, labels (encrypted),
-	compressed (yes/ no), date_created.
 '''
 
 #
@@ -85,14 +94,15 @@ class Briefcase:
 		return True
 
 
-	def _encrypt(self, bdata, salt='^default-salt-for-logs$'):
+	def _encrypt(self, bdata, salt='^default-salt-for-logs$', blocksize=16):
 		'''
 		Encrypt some data.
 		The master ENCR KEY is used for all data, but the salt is always differend.
 		'''
-		pwd = PBKDF2(password=self._encr_key, salt=salt, dkLen=32, count=1000)
+		pwd = PBKDF2(password=self._encr_key, salt=salt, dkLen=32, count=100)
 		crypt = AES.new(pwd)
-		padding = 'X' * ( (((len(bdata)/16)+1)*16) - len(bdata) )
+		pad_len = blocksize - (len(bdata) % blocksize)
+		padding = (chr(pad_len) * pad_len)
 		return crypt.encrypt(bdata + padding)
 
 
@@ -101,9 +111,11 @@ class Briefcase:
 		Decrypt some data.
 		The default salt is used only for logs.
 		'''
-		pwd = PBKDF2(password=self._encr_key, salt=salt, dkLen=32, count=1000)
+		pwd = PBKDF2(password=self._encr_key, salt=salt, dkLen=32, count=100)
 		crypt = AES.new(pwd)
-		return crypt.decrypt(bdata)
+		decrypted = crypt.decrypt(bdata)
+		pad_len = ord(decrypted[-1])
+		return decrypted[:-pad_len]
 
 
 	def connect(self, username, password, create=False):
@@ -152,12 +164,13 @@ class Briefcase:
 			pwd_salt = self._dict['users'][self._user_id]['pwd_salt']
 
 			# At this point the username is valid, so check the password...
-			if not PBKDF2(password=password, salt=pwd_salt, dkLen=32, count=5000) == \
+			if PBKDF2(password=password, salt=pwd_salt, dkLen=32, count=5000) != \
 				self._dict['users'][self._user_id]['pwd']:
 				print('Sign-in error! The password does not match! Exiting!')
 				return False
 
 		# Generate key from username and password
+		# This key is the base for encrypting all files and logs
 		self._encr_key = PBKDF2(password=password+pwd_salt, salt=username+usr_salt, dkLen=32, count=2000)
 
 		# Now that the encryption key is generated, write some logs
@@ -204,12 +217,43 @@ class Briefcase:
 		pass
 
 
-	def add_file(self, filename, overwrite=False):
+	def add_file(self, filename, labels=[], compress=False, overwrite=False):
 		'''
 		Adds 1 file in the Files dictionary and encrypts the data.
 		The original file is not deleted.
 		'''
-		pass
+		if not self._user_id:
+			print('Cannot add file! Must sign-in first!')
+			return False
+		if not os.path.isfile(filename):
+			print("Cannot add file! File path `%s` doesn't exist!" % filename)
+			return False
+
+		if type(labels) != type(list) or type(labels) != type(tuple):
+			print('Cannot add labels! Labels must be a List, or a Tuple, '
+				'you provided `%s` !' % str(type(labels)) )
+			return False
+		if compress:
+			compress = True
+		else:
+			compress = False
+		if overwrite:
+			overwrite = True
+		else:
+			overwrite = False
+
+		salt = get_random_bytes(32)
+		now = datetime.datetime.today()
+
+		fd = {
+			'filename': os.path.split(filename)[1],
+			'labels'  : json.dumps(labels),
+			'date_created': now.strftime("%Y-%b-%d %H:%M:%S.%f"),
+			'user_id' : self._user_id,
+			'salt'    : salt,
+			'compressed': compress,
+			'hash': '', 'data': ''
+		}
 
 
 	def remove_file(self, filename):
