@@ -17,7 +17,10 @@
 import os, sys
 import time
 import datetime
+import zlib
+import json
 import cPickle as pickle
+import binascii as ba
 
 # External dependency.
 from Crypto.Cipher import AES
@@ -40,13 +43,14 @@ Users is a dictionary with :
 	pwd (pbkdf2 hash),
 	usr_salt and pwd_salt.
 
-Files dictionary is a list of:
-	filename (encrypted), salt,
+Files is a dictionary with :
+	filename (encrypted with fixed salt) =>
+	salt,
 	hash (pbkdf2 with the salt),
-	labels (encrypted),
+	labels (encrypted with the salt),
 	compressed (yes/ no),
 	data (compressed and encrypted),
-	user_id, date_created.
+	user_id, ctime.
 
 A user can only decrypt his own files. He can see if there are other users
 	with other files, but cannot know anything about the files.
@@ -64,7 +68,7 @@ class Briefcase:
 		With "create" option, the briefcase is created.
 		'''
 
-		self._filename = filename
+		self._filename = os.path.abspath(filename)
 		self._dict = {} # The main dictionary
 		self._user_id  = None
 		self._encr_key = None
@@ -217,7 +221,19 @@ class Briefcase:
 		pass
 
 
-	def add_file(self, filename, labels=[], compress=False, overwrite=False):
+	def list_files(self):
+		'''
+		List the files, in order.
+		'''
+		files = []
+		for fname in self._dict['files']:
+			fname = ba.unhexlify(fname)
+			fname = self._decrypt(fname, '0Default-s@lt-for-fileNames!')
+			files.append(fname)
+		return sorted(files)
+
+
+	def add_file(self, filename, labels=[], compress=False, included=False, overwrite=False):
 		'''
 		Adds 1 file in the Files dictionary and encrypts the data.
 		The original file is not deleted.
@@ -229,7 +245,7 @@ class Briefcase:
 			print("Cannot add file! File path `%s` doesn't exist!" % filename)
 			return False
 
-		if type(labels) != type(list) or type(labels) != type(tuple):
+		if type(labels) != type([]) and type(labels) != type((0,)):
 			print('Cannot add labels! Labels must be a List, or a Tuple, '
 				'you provided `%s` !' % str(type(labels)) )
 			return False
@@ -242,17 +258,91 @@ class Briefcase:
 		else:
 			overwrite = False
 
-		salt = get_random_bytes(32)
-		now = datetime.datetime.today()
+		fname = os.path.split(filename)[1]	# Short filename
+		encr  = self._encrypt(fname, '0Default-s@lt-for-fileNames!')
+		encr  = ba.hexlify(encr)
 
-		fd = {
-			'filename': os.path.split(filename)[1],
-			'labels'  : json.dumps(labels),
-			'date_created': now.strftime("%Y-%b-%d %H:%M:%S.%f"),
+		if not overwrite and encr in self._dict['files']:
+			print('Cannot add file! The file exists already and you provided `overwrite = false` !')
+			return False
+
+		salt  = get_random_bytes(32)		# Random salt
+		now   = datetime.datetime.today()	# Date and Time
+		bdata = open(filename, 'rb').read()	# Original binary data
+		fhash = MD4.new(bdata).digest()		# Original data hash
+
+		if compress:
+			bdata = zlib.compress(bdata)
+
+		bdata = self._encrypt(bdata, salt)
+
+		if not included:
+			path = os.path.split(self._filename)[0]+os.sep+encr
+			print 'will use path:', path
+			open(path, 'wb').write(bdata)
+
+		self._dict['files'][encr] = {
+			'labels'  : self._encrypt(json.dumps(labels), salt),
+			'ctime': now.strftime("%Y-%b-%d %H:%M:%S"),
 			'user_id' : self._user_id,
 			'salt'    : salt,
 			'compressed': compress,
-			'hash': '', 'data': ''
+			'included': included,
+			'hash'    : fhash,
+			'data'    : bdata
+		}
+
+		print('Added file `%s` in the briefcase.' % fname)
+		self._dump()
+		return True
+
+
+	def decrypt_file(self, filename):
+		'''
+		Decrypt a file from the Briefcase and return all the original data.
+		'''
+		if not self._user_id:
+			print('Cannot decrypt file! Must sign-in first!')
+			return False
+
+		fname = os.path.split(filename)[1]	# Short filename
+		encr  = self._encrypt(fname, '0Default-s@lt-for-fileNames!')
+		encr  = ba.hexlify(encr)
+
+		if not encr in self._dict['files']:
+			print("Cannot decrypt file! Filename `%s` doesn't exist!" % filename)
+			return False
+		else:
+			fd = self._dict['files'][encr]
+
+		salt   = fd['salt']
+		labels = json.loads( self._decrypt(fd['labels'], salt) )
+		date   = fd['ctime']
+		fhash  = fd['hash']
+
+		if not fd['included']:
+			path = os.path.split(self._filename)[0]+os.sep+encr
+			bdata = open(path, 'rb').read()
+		else:
+			bdata = fd['data']
+
+		bdata = self._decrypt(bdata, salt)
+
+		if fd['compressed']:
+			bdata = zlib.decompress(bdata)
+
+		if fhash != MD4.new(bdata).digest():
+			print("Invalid decrypt! The hash doesn't match!")
+			return False
+
+		return {
+			'labels' : labels,
+			'ctime'  : date,
+			'salt'   : salt,
+			'compressed': fd['compressed'],
+			'included': fd['included'],
+			'hash'    : fhash,
+			'data'    : bdata
 		}
 
 
@@ -263,9 +353,9 @@ class Briefcase:
 		pass
 
 
-	def decrypt_file(self, filename):
+	def rename_file(self, filename, new_filename):
 		'''
-		Decrypt a file from the Briefcase folder, using the encr_key.
+		Rename the file in the dictionary.
 		'''
 		pass
 

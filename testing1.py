@@ -1,10 +1,15 @@
 
 import os, sys
+import glob
+import shutil
+import random
 import unittest
 
 from Crypto.Random import get_random_bytes
 from priv_briefcase import *
 
+#
+FILE = 'test/test1.pkl'
 #
 
 class Test1(unittest.TestCase):
@@ -13,7 +18,7 @@ class Test1(unittest.TestCase):
 		'''
 		Test create briefcase and create user.
 		'''
-		b = Briefcase('test1.pkl', create=True, logging=True)
+		b = Briefcase(FILE, create=True, logging=True)
 		print 'Created:', b
 
 		# Create 1 user
@@ -26,6 +31,7 @@ class Test1(unittest.TestCase):
 			print 'Created user %i:' % i, r
 		del b
 
+		# Final check
 		self.assertTrue(r1 and r)
 
 
@@ -33,7 +39,7 @@ class Test1(unittest.TestCase):
 		'''
 		Test sign in with correct password.
 		'''
-		b = Briefcase('test1.pkl')
+		b = Briefcase(FILE)
 		print 'Opened:', b
 		# Log-in no 1
 		r = b.connect('user', 'pass_pwd_ddd')
@@ -48,7 +54,7 @@ class Test1(unittest.TestCase):
 		'''
 		Test sign in with a few wrong passwords.
 		'''
-		b = Briefcase('test1.pkl', create=False)
+		b = Briefcase(FILE, create=False)
 		print 'Opened:', b
 
 		results = []
@@ -60,7 +66,7 @@ class Test1(unittest.TestCase):
 
 
 	def test_4_show_logs(self):
-		b = Briefcase('test1.pkl')
+		b = Briefcase(FILE)
 		b.connect('user', 'pass_pwd_ddd')
 		print 'Logs:'
 		r = b.show_logs()
@@ -69,11 +75,57 @@ class Test1(unittest.TestCase):
 
 #
 
+class Test2(unittest.TestCase):
+
+	def test_1_create(self):
+		'''
+		Test create briefcase and create user.
+		'''
+		b = Briefcase(FILE, create=True, logging=True)
+		print 'Created:', b
+		# Create 1 user
+		r1 = b.connect('user', 'some_long_password', create=True)
+		print 'Created default user:', r1
+		# Final check
+		self.assertTrue(r1)
+
+	def test_2_encrypt(self):
+		'''
+		Test encrypting files.
+		Each file has labels and some files are compressed.
+		'''
+		b = Briefcase(FILE)
+		b.connect('user', 'some_long_password')
+		#
+		files = glob.glob('/dos/Pics/Flickr/*.jpg')[:10]
+		for fname in files:
+			r = b.add_file(fname, labels=['image', 'jpg'], compress=random.choice([True, False]) )
+		#
+		print b.list_files()
+		self.assertTrue(r)
+
+	def test_3_decrypt(self):
+		'''
+		Test decrypting files. Some files are compressed.
+		'''
+		b = Briefcase(FILE)
+		b.connect('user', 'some_long_password')
+		#
+		for fname in b.list_files():
+			fd = b.decrypt_file(fname)
+			print fname, fd['compressed'], fd['ctime'], fd['labels']
+			open('test/' + fname, 'wb').write(fd['data'])
+		#
+		self.assertTrue(True)
+
+#
+
 if __name__ == '__main__':
 
 	print 'Starting...\n'
-	try: os.remove('test1.pkl')
+	try: shutil.rmtree('test')
 	except: pass
-	suite = unittest.TestLoader().loadTestsFromTestCase(Test1)
+	os.mkdir('test')
+	suite = unittest.TestLoader().loadTestsFromTestCase(Test2)
 	unittest.TextTestRunner(verbosity=2).run(suite)
 	print 'Done!\n'
