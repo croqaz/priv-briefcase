@@ -83,7 +83,7 @@ class Test1(unittest.TestCase):
 
 class Test2(unittest.TestCase):
 
-	def test_1_create(self):
+	def test_01_create(self):
 		'''
 		Test create briefcase and create user.
 		'''
@@ -101,8 +101,9 @@ class Test2(unittest.TestCase):
 		# Final check
 		self.assertTrue(r1)
 
+# # Test Outside # # #
 
-	def test_2_encrypt(self):
+	def test_02_encrypt(self):
 		'''
 		Test encrypting files.
 		Each file has labels and some files are compressed.
@@ -117,7 +118,7 @@ class Test2(unittest.TestCase):
 		print b.list_files()
 		self.assertTrue(r)
 
-	def test_3_decrypt(self):
+	def test_03_decrypt(self):
 		'''
 		Test decrypting files. Some files are compressed.
 		'''
@@ -132,7 +133,21 @@ class Test2(unittest.TestCase):
 		#
 		self.assertTrue(True)
 
-	def test_4_delete(self):
+	def test_04_rename(self):
+		'''
+		Rename files outside briefcase.
+		'''
+		b = Briefcase(FILE)
+		b.connect('user', 'some_long_password')
+		files = b.list_files()
+		#
+		for i in range(len(files)):
+			fname = files[i]
+			r = b.rename_file(fname, 'file_%i' % i)
+		#
+		self.assertTrue(r)
+
+	def test_05_delete(self):
 		'''
 		Delete files outside briefcase.
 		'''
@@ -144,8 +159,9 @@ class Test2(unittest.TestCase):
 		#
 		self.assertTrue(b.list_files() == [])
 
+# # Test Inside # # #
 
-	def test_5_encrypt_inside(self):
+	def test_06_encrypt_inside(self):
 		'''
 		Test encrypting files (included).
 		Each file has labels and some files are compressed.
@@ -161,7 +177,7 @@ class Test2(unittest.TestCase):
 		print b.list_files()
 		self.assertTrue(r)
 
-	def test_6_decrypt_inside(self):
+	def test_07_decrypt_inside(self):
 		'''
 		Test decrypting files (included). Some files are compressed.
 		'''
@@ -176,7 +192,7 @@ class Test2(unittest.TestCase):
 		#
 		self.assertTrue(True)
 
-	def test_7_delete_inside(self):
+	def test_08_delete_inside(self):
 		'''
 		Delete files inside briefcase.
 		'''

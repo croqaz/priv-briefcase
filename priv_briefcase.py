@@ -60,12 +60,16 @@ A user can only decrypt his own files. He can see if there are other users
 
 class Briefcase:
 
+	'''
+	Main class.
+	'''
+
 	def __init__(self, filename, create=False, logging=False):
 		'''
 		Connect to one briefcase file.
 		Neither the list of files, nor the logs can be decrypted,
 		unless a user with a correct password is connected.
-		With "create" option, the briefcase is created.
+		With "create" = True, a new briefcase is created.
 		'''
 
 		self._filename = os.path.abspath(filename)
@@ -75,19 +79,24 @@ class Briefcase:
 
 		if create:
 			if not os.path.exists(filename):
-				self._dict['system'] = {'logging': logging, 'created': time.strftime("%Y-%b-%d %H:%M:%S")}
+				self._dict['system'] = {
+					'logging': logging,
+					'created': time.strftime("%Y-%b-%d %H:%M:%S")
+					}
 				self._dict['users']  = {}
 				self._dict['files']  = {}
 				self._dict['logs']   = {}
 				# Commit...
 				self._dump()
 			else:
-				raise Exception('Create briefcase error! File `%s` already exists! Exiting!' % filename)
+				raise Exception('Create briefcase error! File `%s` already exists! '
+					'Exiting!' % filename)
 		else:
 			if os.path.exists(filename):
 				self._dict = pickle.load(open(filename, 'rb'))
 			else:
-				raise Exception('Open briefcase error! File `%s` does not exist! Exiting!' % filename)
+				raise Exception('Open briefcase error! File `%s` does not exist! '
+					'Exiting!' % filename)
 
 
 	def _dump(self):
@@ -127,7 +136,7 @@ class Briefcase:
 		Submit username and password and if they match,
 		update the list of Files and Logs for the user.
 		The user and pwd are required, both on access and creation.
-		With "create" option, a new user is created.
+		With "create" = True, a new user is created.
 		'''
 
 		# On creating new user...
@@ -299,12 +308,12 @@ class Briefcase:
 		return True
 
 
-	def _get_file_id(self, filename):
+	def _get_file_info(self, filename):
 		'''
-		Helper for returning the file ID.
+		Helper function, for returning a file info.
 		Filename = original filename, with OR without the full path.
 		'''
-		fname = os.path.split(filename)[1]	# Short filename
+		fname = os.path.split(filename)[1] # Short filename
 		encr  = self._encrypt(fname, '0Default-s@lt-for-fileNames!')
 		encr  = ba.hexlify(encr)
 
@@ -328,7 +337,7 @@ class Briefcase:
 			print('Cannot decrypt file! Must sign-in first!')
 			return False
 
-		fd = self._get_file_id(filename)
+		fd = self._get_file_info(filename)
 
 		encr = fd['encr']
 		fname = fd['fname']
@@ -365,20 +374,22 @@ class Briefcase:
 
 	def remove_file(self, filename):
 		'''
-		Remove 1 file in the Files dictionary and delete the encrypted file.
+		Remove 1 file from the Files dictionary and delete the file from HDD.
 		'''
-		fd = self._get_file_id(filename)
+		fd = self._get_file_info(filename)
 		encr = fd['encr']
 		fname = fd['fname']
 		to_delete = os.path.split(self._filename)[0]+os.sep+encr
 
+		# Remove from inside first
 		del self._dict['files'][encr]
 		self._dump()
 
+		# Then, remove from HDD
 		if not fd['included']:
 			try: os.remove(to_delete)
 			except:
-				print('Cannot delete encypted file `%s` !' % to_delete)
+				print('Cannot delete file `%s` from HDD !' % to_delete)
 				return False
 
 		if fd['included']:
@@ -390,9 +401,34 @@ class Briefcase:
 
 	def rename_file(self, filename, new_filename):
 		'''
-		Rename the file in the dictionary.
+		Rename 1 file in the dictionary and on HDD.
 		'''
-		pass
+		fd = self._get_file_info(filename)
+		encr = fd['encr']
+		fname = fd['fname']
+
+		new_fname = os.path.split(new_filename)[1] # Short filename
+		new_encr  = self._encrypt(new_fname, '0Default-s@lt-for-fileNames!')
+		new_encr  = ba.hexlify(new_encr)
+
+		# Try to rename on HDD first
+		if not fd['included']:
+			try: os.rename(os.path.split(self._filename)[0]+os.sep+encr,
+					os.path.split(self._filename)[0]+os.sep+new_encr)
+			except:
+				print('Cannot rename file `%s` into `%s` !' % (filename, new_filename))
+				return False
+
+		# Then, rename inside
+		self._dict['files'][new_encr] = self._dict['files'][encr]
+		del self._dict['files'][encr]
+		self._dump()
+
+		if fd['included']:
+			print('Renamed file `%s` inside the briefcase.' % fname)
+		else:
+			print('Renamed file `%s` outside the briefcase.' % fname)
+		return True
 
 #
 
