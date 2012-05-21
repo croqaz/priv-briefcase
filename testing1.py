@@ -18,6 +18,12 @@ class Test1(unittest.TestCase):
 		'''
 		Test create briefcase and create user.
 		'''
+		# Cleanup
+		try: shutil.rmtree('test')
+		except: pass
+		try: os.mkdir('test')
+		except: pass
+
 		b = Briefcase(FILE, create=True, logging=True)
 		print 'Created:', b
 
@@ -81,6 +87,12 @@ class Test2(unittest.TestCase):
 		'''
 		Test create briefcase and create user.
 		'''
+		# Cleanup
+		try: shutil.rmtree('test')
+		except: pass
+		try: os.mkdir('test')
+		except: pass
+
 		b = Briefcase(FILE, create=True, logging=True)
 		print 'Created:', b
 		# Create 1 user
@@ -88,6 +100,7 @@ class Test2(unittest.TestCase):
 		print 'Created default user:', r1
 		# Final check
 		self.assertTrue(r1)
+
 
 	def test_2_encrypt(self):
 		'''
@@ -113,19 +126,75 @@ class Test2(unittest.TestCase):
 		#
 		for fname in b.list_files():
 			fd = b.decrypt_file(fname)
-			print fname, fd['compressed'], fd['ctime'], fd['labels']
+			print fname, 'compr=', fd['compressed'], 'incl=', fd['included'],\
+				fd['ctime'], fd['labels']
 			open('test/' + fname, 'wb').write(fd['data'])
 		#
 		self.assertTrue(True)
+
+	def test_4_delete(self):
+		'''
+		Delete files outside briefcase.
+		'''
+		b = Briefcase(FILE)
+		b.connect('user', 'some_long_password')
+		#
+		for fname in b.list_files():
+			b.remove_file(fname)
+		#
+		self.assertTrue(b.list_files() == [])
+
+
+	def test_5_encrypt_inside(self):
+		'''
+		Test encrypting files (included).
+		Each file has labels and some files are compressed.
+		'''
+		b = Briefcase(FILE)
+		b.connect('user', 'some_long_password')
+		#
+		files = glob.glob('/dos/Pics/Flickr/*.jpg')[-10:]
+		for fname in files:
+			r = b.add_file(fname, labels=['image', 'jpg'], included=True,
+				compress=random.choice([True, False]) )
+		#
+		print b.list_files()
+		self.assertTrue(r)
+
+	def test_6_decrypt_inside(self):
+		'''
+		Test decrypting files (included). Some files are compressed.
+		'''
+		b = Briefcase(FILE)
+		b.connect('user', 'some_long_password')
+		#
+		for fname in b.list_files():
+			fd = b.decrypt_file(fname)
+			print fname, 'compr=', fd['compressed'], 'incl=', fd['included'],\
+				fd['ctime'], fd['labels']
+			open('test/' + fname, 'wb').write(fd['data'])
+		#
+		self.assertTrue(True)
+
+	def test_7_delete_inside(self):
+		'''
+		Delete files inside briefcase.
+		'''
+		b = Briefcase(FILE)
+		b.connect('user', 'some_long_password')
+		#
+		for fname in b.list_files():
+			b.remove_file(fname)
+		#
+		self.assertTrue(b.list_files() == [])
 
 #
 
 if __name__ == '__main__':
 
 	print 'Starting...\n'
-	try: shutil.rmtree('test')
-	except: pass
-	os.mkdir('test')
-	suite = unittest.TestLoader().loadTestsFromTestCase(Test2)
+	suite = unittest.TestSuite()
+	#suite.addTest(unittest.makeSuite(Test1))
+	suite.addTest(unittest.makeSuite(Test2))
 	unittest.TextTestRunner(verbosity=2).run(suite)
 	print 'Done!\n'

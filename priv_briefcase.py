@@ -278,7 +278,6 @@ class Briefcase:
 
 		if not included:
 			path = os.path.split(self._filename)[0]+os.sep+encr
-			print 'will use path:', path
 			open(path, 'wb').write(bdata)
 
 		self._dict['files'][encr] = {
@@ -292,9 +291,33 @@ class Briefcase:
 			'data'    : bdata
 		}
 
-		print('Added file `%s` in the briefcase.' % fname)
+		if included:
+			print('Added file `%s` inside the briefcase.' % fname)
+		else:
+			print('Added file `%s` outside the briefcase.' % fname)
 		self._dump()
 		return True
+
+
+	def _get_file_id(self, filename):
+		'''
+		Helper for returning the file ID.
+		Filename = original filename, with OR without the full path.
+		'''
+		fname = os.path.split(filename)[1]	# Short filename
+		encr  = self._encrypt(fname, '0Default-s@lt-for-fileNames!')
+		encr  = ba.hexlify(encr)
+
+		if not encr in self._dict['files']:
+			print("Cannot find file! Filename `%s` doesn't exist!" % fname)
+			return False
+		else:
+			fd = self._dict['files'][encr]
+
+		# These names might be useful
+		fd['fname'] = fname
+		fd['encr'] = encr
+		return fd
 
 
 	def decrypt_file(self, filename):
@@ -305,16 +328,10 @@ class Briefcase:
 			print('Cannot decrypt file! Must sign-in first!')
 			return False
 
-		fname = os.path.split(filename)[1]	# Short filename
-		encr  = self._encrypt(fname, '0Default-s@lt-for-fileNames!')
-		encr  = ba.hexlify(encr)
+		fd = self._get_file_id(filename)
 
-		if not encr in self._dict['files']:
-			print("Cannot decrypt file! Filename `%s` doesn't exist!" % filename)
-			return False
-		else:
-			fd = self._dict['files'][encr]
-
+		encr = fd['encr']
+		fname = fd['fname']
 		salt   = fd['salt']
 		labels = json.loads( self._decrypt(fd['labels'], salt) )
 		date   = fd['ctime']
@@ -350,7 +367,25 @@ class Briefcase:
 		'''
 		Remove 1 file in the Files dictionary and delete the encrypted file.
 		'''
-		pass
+		fd = self._get_file_id(filename)
+		encr = fd['encr']
+		fname = fd['fname']
+		to_delete = os.path.split(self._filename)[0]+os.sep+encr
+
+		del self._dict['files'][encr]
+		self._dump()
+
+		if not fd['included']:
+			try: os.remove(to_delete)
+			except:
+				print('Cannot delete encypted file `%s` !' % to_delete)
+				return False
+
+		if fd['included']:
+			print('Removed file `%s` from inside the briefcase.' % fname)
+		else:
+			print('Removed file `%s` from outside the briefcase.' % fname)
+		return True
 
 
 	def rename_file(self, filename, new_filename):
