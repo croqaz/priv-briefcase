@@ -101,7 +101,7 @@ class Briefcase:
 
 	def _dump(self):
 		'''
-		Save the main dictionary on HDD.
+		Internal function. Saves the main dictionary on HDD.
 		'''
 		pickle.dump(self._dict, open(self._filename, 'wb'), pickle.HIGHEST_PROTOCOL)
 		return True
@@ -136,6 +136,7 @@ class Briefcase:
 		Submit username and password and if they match,
 		update the list of Files and Logs for the user.
 		The user and pwd are required, both on access and creation.
+		The key is created using 9999 cycles, this makes it hard to calculate on purpose.
 		With "create" = True, a new user is created.
 		'''
 
@@ -153,8 +154,8 @@ class Briefcase:
 			pwd_salt = get_random_bytes(32)
 
 			# Create encrypted usr and pwd
-			usr = PBKDF2(password=username, salt='1private-briefcase!', dkLen=32, count=5000)
-			pwd = PBKDF2(password=password, salt=pwd_salt, dkLen=32, count=5000)
+			usr = PBKDF2(password=username, salt='1private-briefcase!', dkLen=32, count=9999)
+			pwd = PBKDF2(password=password, salt=pwd_salt, dkLen=32, count=9999)
 
 			# Commit...
 			self._dict['users'][self._user_id] = {
@@ -164,7 +165,7 @@ class Briefcase:
 		# On authenticating...
 		else:
 			# This generates an encrypted username, same as the one stored in the briefcase
-			usr = PBKDF2(password=username, salt='1private-briefcase!', dkLen=32, count=5000)
+			usr = PBKDF2(password=username, salt='1private-briefcase!', dkLen=32, count=9999)
 
 			# If the encrypted username doesn't match with anything, it's an error
 			if not usr in [ k['usr'] for k in self._dict['users'].values() ]:
@@ -177,9 +178,9 @@ class Briefcase:
 			pwd_salt = self._dict['users'][self._user_id]['pwd_salt']
 
 			# At this point the username is valid, so check the password...
-			if PBKDF2(password=password, salt=pwd_salt, dkLen=32, count=5000) != \
+			if PBKDF2(password=password, salt=pwd_salt, dkLen=32, count=9999) != \
 				self._dict['users'][self._user_id]['pwd']:
-				print('Sign-in error! The password does not match! Exiting!')
+				print('Sign-in error! The password is not correct! Exiting!')
 				return False
 
 		# Generate key from username and password
@@ -201,6 +202,25 @@ class Briefcase:
 		return True
 
 
+	def change_password(self, old_password, new_password):
+		'''
+		Changing the password is a heavy operation.
+		All data for this user must be re-encrypted: the logs and the files.
+		'''
+		pass
+
+
+	def join_briefcase(self, filename, usr, pwd, overwrite=False):
+		'''
+		Copy the files from another briefcase, using a correct combination of usr + pwd.
+		If there are files with the same name, with overwrite enabled,
+		the files here are updated. Else, the files here are kept.
+		The files are encrypted using the usr + pwd from the current briefcase,
+		not the remote one.
+		'''
+		pass
+
+
 	def show_logs(self):
 		'''
 		Print all logs for current user.
@@ -218,16 +238,6 @@ class Briefcase:
 			print('%s :: %s' % (k.split('.')[0], self._decrypt(log['msg'])) )
 
 		return True
-
-
-	def join_briefcase(self, filename, usr, pwd, overwrite=False):
-		'''
-		Copy the Files from another briefcase, using a correct combination of usr + pwd.
-		If there are files with the same name, with overwrite enabled,
-		the files here are updated. Else, the files here are kept.
-		The files are encrypted using the usr + pwd from the current briefcase, not the remote one.
-		'''
-		pass
 
 
 	def list_files(self):

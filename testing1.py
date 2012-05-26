@@ -14,6 +14,8 @@ FILE = 'test/test1.pkl'
 
 class Test1(unittest.TestCase):
 
+	PWD = 'pass_pwd_ddd'
+
 	def test_1_create(self):
 		'''
 		Test create briefcase and create user.
@@ -28,7 +30,7 @@ class Test1(unittest.TestCase):
 		print 'Created:', b
 
 		# Create 1 user
-		r1 = b.connect('user', 'pass_pwd_ddd', create=True)
+		r1 = b.connect('user', self.PWD, create=True)
 		print 'Created default user:', r1
 
 		# Create more users
@@ -48,7 +50,7 @@ class Test1(unittest.TestCase):
 		b = Briefcase(FILE)
 		print 'Opened:', b
 		# Log-in no 1
-		r = b.connect('user', 'pass_pwd_ddd')
+		r = b.connect('user', self.PWD)
 		print 'Sign-in user:', r
 		# Log-in no 2
 		r = b.connect('user_1', 'passwd_usr_1')
@@ -73,15 +75,17 @@ class Test1(unittest.TestCase):
 
 	def test_4_show_logs(self):
 		b = Briefcase(FILE)
-		b.connect('user', 'pass_pwd_ddd')
+		b.connect('user', self.PWD)
 		print 'Logs:'
 		r = b.show_logs()
 		del b
 		self.assertTrue(r)
 
-#
+# # #
 
 class Test2(unittest.TestCase):
+
+	PWD = 'some long password...'
 
 	def test_01_create(self):
 		'''
@@ -96,7 +100,7 @@ class Test2(unittest.TestCase):
 		b = Briefcase(FILE, create=True, logging=True)
 		print 'Created:', b
 		# Create 1 user
-		r1 = b.connect('user', 'some_long_password', create=True)
+		r1 = b.connect('user', self.PWD, create=True)
 		print 'Created default user:', r1
 		# Final check
 		self.assertTrue(r1)
@@ -109,7 +113,7 @@ class Test2(unittest.TestCase):
 		Each file has labels and some files are compressed.
 		'''
 		b = Briefcase(FILE)
-		b.connect('user', 'some_long_password')
+		b.connect('user', self.PWD)
 		#
 		files = glob.glob('/dos/Pics/Flickr/*.jpg')[:10]
 		for fname in files:
@@ -123,7 +127,7 @@ class Test2(unittest.TestCase):
 		Test decrypting files. Some files are compressed.
 		'''
 		b = Briefcase(FILE)
-		b.connect('user', 'some_long_password')
+		b.connect('user', self.PWD)
 		#
 		for fname in b.list_files():
 			fd = b.decrypt_file(fname)
@@ -138,7 +142,7 @@ class Test2(unittest.TestCase):
 		Rename files outside briefcase.
 		'''
 		b = Briefcase(FILE)
-		b.connect('user', 'some_long_password')
+		b.connect('user', self.PWD)
 		files = b.list_files()
 		#
 		for i in range(len(files)):
@@ -152,7 +156,7 @@ class Test2(unittest.TestCase):
 		Delete files outside briefcase.
 		'''
 		b = Briefcase(FILE)
-		b.connect('user', 'some_long_password')
+		b.connect('user', self.PWD)
 		#
 		for fname in b.list_files():
 			b.remove_file(fname)
@@ -167,7 +171,7 @@ class Test2(unittest.TestCase):
 		Each file has labels and some files are compressed.
 		'''
 		b = Briefcase(FILE)
-		b.connect('user', 'some_long_password')
+		b.connect('user', self.PWD)
 		#
 		files = glob.glob('/dos/Pics/Flickr/*.jpg')[-10:]
 		for fname in files:
@@ -182,7 +186,7 @@ class Test2(unittest.TestCase):
 		Test decrypting files (included). Some files are compressed.
 		'''
 		b = Briefcase(FILE)
-		b.connect('user', 'some_long_password')
+		b.connect('user', self.PWD)
 		#
 		for fname in b.list_files():
 			fd = b.decrypt_file(fname)
@@ -197,7 +201,7 @@ class Test2(unittest.TestCase):
 		Delete files inside briefcase.
 		'''
 		b = Briefcase(FILE)
-		b.connect('user', 'some_long_password')
+		b.connect('user', self.PWD)
 		#
 		for fname in b.list_files():
 			b.remove_file(fname)
@@ -210,7 +214,7 @@ if __name__ == '__main__':
 
 	print 'Starting...\n'
 	suite = unittest.TestSuite()
-	#suite.addTest(unittest.makeSuite(Test1))
+	suite.addTest(unittest.makeSuite(Test1))
 	suite.addTest(unittest.makeSuite(Test2))
 	unittest.TextTestRunner(verbosity=2).run(suite)
 	print 'Done!\n'
