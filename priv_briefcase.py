@@ -204,7 +204,7 @@ class Briefcase:
 
 	def change_password(self, old_password, new_password):
 		'''
-		Changing the password is a heavy operation.
+		Changing the password is a really heavy operation.
 		All data for this user must be re-encrypted: the logs and the files.
 		'''
 		pass
@@ -250,6 +250,27 @@ class Briefcase:
 			fname = self._decrypt(fname, '0Default-s@lt-for-fileNames!')
 			files.append(fname)
 		return sorted(files)
+
+
+	def _get_file_info(self, filename):
+		'''
+		Helper function, for returning a file info.
+		Filename = original filename, with OR without the full path.
+		'''
+		fname = os.path.split(filename)[1] # Short filename
+		encr  = self._encrypt(fname, '0Default-s@lt-for-fileNames!')
+		encr  = ba.hexlify(encr)
+
+		if not encr in self._dict['files']:
+			print("Cannot find file! Filename `%s` doesn't exist!" % fname)
+			return False
+		else:
+			fd = self._dict['files'][encr]
+
+		# These names might be useful
+		fd['fname'] = fname
+		fd['encr'] = encr
+		return fd
 
 
 	def add_file(self, filename, labels=[], compress=False, included=False, overwrite=False):
@@ -316,27 +337,6 @@ class Briefcase:
 			print('Added file `%s` outside the briefcase.' % fname)
 		self._dump()
 		return True
-
-
-	def _get_file_info(self, filename):
-		'''
-		Helper function, for returning a file info.
-		Filename = original filename, with OR without the full path.
-		'''
-		fname = os.path.split(filename)[1] # Short filename
-		encr  = self._encrypt(fname, '0Default-s@lt-for-fileNames!')
-		encr  = ba.hexlify(encr)
-
-		if not encr in self._dict['files']:
-			print("Cannot find file! Filename `%s` doesn't exist!" % fname)
-			return False
-		else:
-			fd = self._dict['files'][encr]
-
-		# These names might be useful
-		fd['fname'] = fname
-		fd['encr'] = encr
-		return fd
 
 
 	def decrypt_file(self, filename):
