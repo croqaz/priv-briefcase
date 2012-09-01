@@ -20,6 +20,7 @@ import datetime
 import zlib
 import json
 import cPickle as pickle
+from cStringIO import StringIO
 import binascii as ba
 
 # External dependency.
@@ -27,6 +28,7 @@ from Crypto.Cipher import AES
 from Crypto.Hash import MD4
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Random import get_random_bytes
+from PIL import Image
 
 '''
 A briefcase contains 4 tables :
@@ -48,6 +50,7 @@ Files is a dictionary with :
 	salt,
 	hash (pbkdf2 with the salt),
 	labels (encrypted with the salt),
+	preview (encrypted with the salt),
 	compressed (yes/ no),
 	data (compressed and encrypted),
 	user_id, ctime.
@@ -285,9 +288,9 @@ class Briefcase:
 			print("Cannot add file! File path `%s` doesn't exist!" % filename)
 			return False
 
-		if type(labels) != type([]) and type(labels) != type((0,)):
-			print('Cannot add labels! Labels must be a List, or a Tuple, '
-				'you provided `%s` !' % str(type(labels)) )
+		if type(labels) != type(list()) and type(labels) != type(tuple()):
+			print('Cannot add labels! Labels must be a List, or a Tuple, you provided `%s` !'\
+				% str(type(labels)) )
 			return False
 		if compress:
 			compress = True
@@ -311,9 +314,18 @@ class Briefcase:
 		bdata = open(filename, 'rb').read()	# Original binary data
 		fhash = MD4.new(bdata).digest()		# Original data hash
 
+		# Preview of the image
+		img = Image.open(filename)
+		img.thumbnail((192, 192), Image.ANTIALIAS)
+		buff = StringIO()
+		img.save(buff, "JPEG")
+		bprev = buff.getvalue()
+		del img, buff
+
 		if compress:
 			bdata = zlib.compress(bdata)
 
+		bprev = self._encrypt(bprev, salt)
 		bdata = self._encrypt(bdata, salt)
 
 		if not included:
@@ -322,12 +334,13 @@ class Briefcase:
 
 		self._dict['files'][encr] = {
 			'labels'  : self._encrypt(json.dumps(labels), salt),
-			'ctime': now.strftime("%Y-%b-%d %H:%M:%S"),
+			'ctime'   : now.strftime("%Y-%b-%d %H:%M:%S"),
 			'user_id' : self._user_id,
 			'salt'    : salt,
 			'compressed': compress,
 			'included': included,
 			'hash'    : fhash,
+			'preview' : bprev,
 			'data'    : bdata
 		}
 
@@ -349,12 +362,13 @@ class Briefcase:
 
 		fd = self._get_file_info(filename)
 
-		encr = fd['encr']
+		encr  = fd['encr']
 		fname = fd['fname']
 		salt   = fd['salt']
 		labels = json.loads( self._decrypt(fd['labels'], salt) )
 		date   = fd['ctime']
 		fhash  = fd['hash']
+		bprev  = fd['preview']
 
 		if not fd['included']:
 			path = os.path.split(self._filename)[0]+os.sep+encr
@@ -362,6 +376,7 @@ class Briefcase:
 		else:
 			bdata = fd['data']
 
+		bprev = self._decrypt(bprev, salt)
 		bdata = self._decrypt(bdata, salt)
 
 		if fd['compressed']:
@@ -378,6 +393,7 @@ class Briefcase:
 			'compressed': fd['compressed'],
 			'included': fd['included'],
 			'hash'    : fhash,
+			'preview' : bprev,
 			'data'    : bdata
 		}
 
