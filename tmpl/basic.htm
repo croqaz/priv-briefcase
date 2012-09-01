@@ -27,9 +27,10 @@
 %end
 	<li class="span2">
 		<div class="thumbnail">
-		<a href="full/{{f}}"><img src="preview/{{f}}"/></a>
-		<pre style="margin-top:12px;white-space:pre-line;"><small>{{f}}</small>
-			<br>Some descr</pre>
+		<a href="view/{{f}}"><img src="preview/{{f}}"/></a>
+		<pre style="margin-top:12px;white-space:pre-line;">
+			<span style="font-size:x-small">{{f}}</span>
+			Some descr</pre>
 		</div>
 	</li>
 %if i % 6 == 5:
@@ -39,10 +40,8 @@
 %end
 
 </div> <!-- /container -->
-
 <!-- Le javascript -->
 <script src="static/jquery.min.js"></script>
 <script src="static/bootstrap.min.js"></script>
-
 </body>
 </html>

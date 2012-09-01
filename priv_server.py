@@ -7,44 +7,84 @@
 '''
 
 import os, sys
-import webbrowser
-from bottle import run, route, get, post, debug
-from bottle import response, redirect, template, static_file
+
+from bottle import run, route, get, post, debug, template
+from bottle import request, response, redirect, static_file
 
 from priv_briefcase import Briefcase
 
-#
 
-def connect():
+B = None
+USR = None
+FILE = 'test/test1.pkl'
 
-	global B
-	if B: return
+# # # # #
 
+def connect(usr=0, pwd=0):
+
+	global B, USR
+	USR = usr
+	#
 	if not os.path.exists(FILE):
 		B = Briefcase(FILE, create=True, logging=True)
 		print 'Created:', B, '\n'
 	else:
 		B = Briefcase(FILE, create=False, logging=True)
 		print 'Opened:', B, '\n'
+	#
+	B.connect(usr, pwd, create=False)
 
-	B.connect(USER, PWD, create=False)
-
-#
 
 @route('/')
 @route('/index')
 @route('/index/')
 def index():
 
-	connect()
+	global B
+	if not B:
+		redirect('/login')
+	#
 	files = B.list_files()
-	return template('basic.htm', user=USER, files=files)
+	return template('tmpl/basic.htm', user=USR, files=files)
+
+
+@route('/view/<fname>')
+def view(fname):
+
+	global B
+	if not B:
+		redirect('/login')
+	#
+	return template('tmpl/view.htm', fname=fname)
+
+
+@route('/login')
+@route('/login/')
+def login():
+
+	return template('tmpl/login.htm')
+
+
+@post('/login')
+@post('/login/')
+def login_post():
+
+	usr = request.POST.get('usr', '').strip()
+	pwd = request.POST.get('pwd', '').strip()
+	#
+	if usr and pwd:
+		connect(usr, pwd)
+	#
+	redirect('/index')
 
 
 @route('/preview/<fname>')
 def preview(fname):
 
-	connect()
+	global B
+	if not B:
+		redirect('/login')
+	#
 	finfo = B.decrypt_file(fname)
 	response.content_type = 'image/jpeg'
 	return finfo['preview']
@@ -53,25 +93,23 @@ def preview(fname):
 @route('/full/<fname>')
 def full(fname):
 
-	connect()
+	global B
+	if not B:
+		redirect('/login')
+	#
 	finfo = B.decrypt_file(fname)
 	response.content_type = 'image/jpeg'
 	return finfo['data']
 
-#
 
-@route(':filename#.*\.png|.*\.gif|.*\.jpg|.*\.css|.*\.js#')
+@route(':filename#.*\.png|.*\.gif|.*\.jpg|.*\.ico|.*\.css|.*\.js#')
 def server_static(filename=None):
+
 	return static_file(filename, root=os.getcwd())
 
-#
+# # # # #
 
 if __name__ == '__main__':
-	B = None
-	FILE = 'test/test1.pkl'
-	USER = 'user'
-	PWD = 'some long password...'
 
-	#webbrowser.open_new_tab('http://localhost:333/')
 	debug(True)
 	run(host='localhost', port=333, reloader=True)
