@@ -16,7 +16,17 @@
 	<link rel="shortcut icon" href="/static/favicon.ico"/>
 </head>
 <body>
-<div class="container"><br>
+<div class="navbar navbar-fixed-top">
+<div class="navbar-inner">
+	<div class="container"><ul class="nav">
+	<li><a href="/index">Home</a></li>
+	<li><a href="/new">New</a></li>
+	<li><a href="#">Admin</a></li>
+	</ul></div>
+</div>
+</div>
+
+<br><div class="container"><br><br>
 
 <form method="post">
 	<legend>Login</legend>
@@ -24,7 +34,7 @@
 	<input type="text" name="usr" placeholder="Type user">
 	<label>Type password</label>
 	<input type="text" name="pwd" placeholder="Type pwd">
-	<br>
+	<br><br>
 	<button type="submit" name="action" class="btn">Sign in</button>
 </form>
 

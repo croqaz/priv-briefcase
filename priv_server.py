@@ -102,6 +102,38 @@ def full(fname):
 	return finfo['data']
 
 
+@route('/new')
+@route('/new/')
+def new():
+
+	global B
+	if not B:
+		redirect('/login')
+	#
+	return template('tmpl/new.htm')
+
+
+@post('/new')
+@post('/new/')
+def new_post():
+
+	global B
+	if not B:
+		redirect('/login')
+	#
+	fname  = request.POST.get('fnameText', '')
+	print('Will add filename `{0}`.'.format(fname))
+	labels = [x.strip() for x in request.POST.get('labels', '').split(',')]
+	compress  = request.POST.get('compress', '')
+	included  = request.POST.get('included', '')
+	overwrite = request.POST.get('overwrite', '')
+	#
+	r = B.add_file(fname, labels, compress, included, overwrite)
+	if not r: print('Error adding file `{0}`!'.format(fname))
+	#
+	redirect('/index')
+
+
 @route(':filename#.*\.png|.*\.gif|.*\.jpg|.*\.ico|.*\.css|.*\.js#')
 def server_static(filename=None):
 
