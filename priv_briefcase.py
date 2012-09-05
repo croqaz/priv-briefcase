@@ -284,7 +284,12 @@ class Briefcase:
 		if not self._user_id:
 			print('Cannot add file! Must sign-in first!')
 			return False
-		if not os.path.isfile(filename):
+
+		# If filename is a tuple, the data must be coming from the HTTP server
+		bdata = None
+		if type(filename) == type(tuple()) and len(filename) == 2:
+			filename, bdata = filename
+		elif not os.path.isfile(filename):
 			print("Cannot add file! File path `%s` doesn't exist!" % filename)
 			return False
 
@@ -311,11 +316,11 @@ class Briefcase:
 
 		salt  = get_random_bytes(32)		# Random salt
 		now   = datetime.datetime.today()	# Date and Time
-		bdata = open(filename, 'rb').read()	# Original binary data
+		if not bdata: bdata = open(filename, 'rb').read()	# Original binary data
 		fhash = MD4.new(bdata).digest()		# Original data hash
 
 		# Preview of the image
-		img = Image.open(filename)
+		img = Image.open(StringIO(bdata))
 		img.thumbnail((192, 192), Image.ANTIALIAS)
 		buff = StringIO()
 		img.save(buff, "JPEG")

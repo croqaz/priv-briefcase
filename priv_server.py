@@ -121,14 +121,16 @@ def new_post():
 	if not B:
 		redirect('/login')
 	#
-	fname  = request.POST.get('fnameText', '')
-	print('Will add filename `{0}`.'.format(fname))
+	fobj = request.POST.get('fname', '')
+	fname = fobj.filename
+	bdata = fobj.value
+	del fobj
 	labels = [x.strip() for x in request.POST.get('labels', '').split(',')]
 	compress  = request.POST.get('compress', '')
 	included  = request.POST.get('included', '')
 	overwrite = request.POST.get('overwrite', '')
 	#
-	r = B.add_file(fname, labels, compress, included, overwrite)
+	r = B.add_file((fname, bdata), labels, compress, included, overwrite)
 	if not r: print('Error adding file `{0}`!'.format(fname))
 	#
 	redirect('/index')
