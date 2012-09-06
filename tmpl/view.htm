@@ -23,7 +23,7 @@
 			position:absolute; top:3px; right:28px; color:#555; font:bold 13px/1 sans-serif;
 		}
 		.zoom img {
-			display:block; cursor:crosshair; cursor:pointer;
+			display:block; cursor:move;
 		}
 		.zoom img::selection {
 			background-color:transparent;
@@ -39,22 +39,46 @@
 
 <span class="zoom" id="img">
 	<p><b>Grab</b></p>
-	<img src="/full/{{fname}}" height="600"/>
+	<img src="/full/{{fname}}"
+		style="max-height:620px;max-width:640px; width:auto !important;height:auto !important;"/>
 </span>
 
-<div class="well" style="width:350px;float:right">
-	<p>File: <b>{{fname}}</b><br><br>
-	Some info</p>
+<div class="well" style="float:right">
+	<form method="post">
+		<label><b>File:</b></label>
+		<input type="text" class="span4" id="File" name="File" value="{{fname}}"/><br>
+		<label><b>Labels:</b></label>
+		<input type="text" class="span4" id="Labels" name="Labels" value="{{', '.join(labels)}}"/><br>
+		<label><b>Created:</b></label>
+		<input type="text" class="span4" value="{{ctime}}" readonly/><br><br>
+		<button type="submit" class="btn btn-primary" name="update">Update</button>&nbsp;
+		<a href="#deleteModal" class="btn btn-warning" data-toggle="modal">Delete?</a>&nbsp; <a href="/" class="btn">Home</a>
+	</form>
 </div>
 
 </div> <!-- /container -->
+
+<div class="modal hide fade" id="deleteModal">
+<div class="modal-header">
+	<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+	<h3>Delete file</h3>
+</div>
+<div class="modal-body">
+	<p>Are you sure you want to delete this file ?<br><br>This operation cannot be undone !</p>
+</div>
+<div class="modal-footer">
+	<a href="#" class="btn" data-dismiss="modal" aria-hidden="true">Cancel</a>
+	<a href="/del/{{fname}}/yes" class="btn btn-warning">Delete</a>
+</div>
+</div>
+
 <!-- Le javascript -->
 <script src="/static/jquery.min.js"></script>
 <script src="/static/bootstrap.min.js"></script>
 <script src="/static/jquery.zoom.js"></script>
 <script>
 $(document).ready(function() {
-	$('#img').zoom({ grab: true, duration: 200 });
+	$("#img").zoom({ grab: true, duration: 200 });
 });
 </script>
 </body>

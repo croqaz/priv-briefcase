@@ -35,29 +35,6 @@ def connect(usr=0, pwd=0):
 	B.connect(usr, pwd, create=False)
 
 
-@route('/')
-@route('/index')
-@route('/index/')
-def index():
-
-	global B
-	if not B:
-		redirect('/login')
-	#
-	files = B.list_files()
-	return template('tmpl/basic.htm', user=USR, files=files)
-
-
-@route('/view/<fname>')
-def view(fname):
-
-	global B
-	if not B:
-		redirect('/login')
-	#
-	return template('tmpl/view.htm', fname=fname)
-
-
 @route('/login')
 @route('/login/')
 def login():
@@ -78,28 +55,74 @@ def login_post():
 	redirect('/index')
 
 
-@route('/preview/<fname>')
-def preview(fname):
+@route('/')
+@route('/index')
+@route('/index/')
+def index():
 
 	global B
 	if not B:
 		redirect('/login')
 	#
-	finfo = B.decrypt_file(fname)
-	response.content_type = 'image/jpeg'
-	return finfo['preview']
+	files = B.list_files()
+	return template('tmpl/basic.htm', user=USR, files=files)
 
 
-@route('/full/<fname>')
-def full(fname):
+@route('/view')
+@route('/view/<fname>')
+def view(fname=None):
 
 	global B
 	if not B:
 		redirect('/login')
+	if not fname:
+		redirect('/index')
 	#
-	finfo = B.decrypt_file(fname)
-	response.content_type = 'image/jpeg'
-	return finfo['data']
+	finfo = B.decrypt_file(fname, False)
+	return template('tmpl/view.htm', fname=fname, labels=finfo['labels'], ctime=finfo['ctime'])
+
+
+@post('/view')
+@post('/view/<fname>')
+def view_post(fname=None):
+
+	global B
+	if not B:
+		redirect('/login')
+	if not fname:
+		redirect('/index')
+	#
+	new_fname  = request.POST.get('File', '').strip()
+	new_labels = [x.strip() for x in request.POST.get('Labels', '').split(',')]
+	#
+	if fname != new_fname:
+		B.rename_file(fname, new_fname)
+		B.update_labels(new_fname, new_labels)
+	elif new_labels:
+		B.update_labels(fname, new_labels)
+	#
+	# After the re-name and re-label is done, redirect...
+	if fname != new_fname:
+		redirect('/view/' + new_fname)
+	#
+	finfo = B.decrypt_file(fname, False)
+	return template('tmpl/view.htm', fname=fname, labels=finfo['labels'], ctime=finfo['ctime'])
+
+
+@route('/del')
+@route('/del/<fname>/<sure>')
+def delete(fname=None, sure=None):
+
+	global B
+	if not B:
+		redirect('/login')
+	if not fname:
+		redirect('/index')
+	if not sure:
+		redirect('/view/' + fname)
+	#
+	B.remove_file(fname)
+	redirect('/index')
 
 
 @route('/new')
@@ -134,6 +157,34 @@ def new_post():
 	if not r: print('Error adding file `{0}`!'.format(fname))
 	#
 	redirect('/index')
+
+
+@route('/preview/<fname>')
+def preview(fname):
+	'''
+	Preview thumbnail.
+	'''
+	global B
+	if not B:
+		redirect('/login')
+	#
+	finfo = B.decrypt_file(fname, False)
+	response.content_type = 'image/jpeg'
+	return finfo['preview']
+
+
+@route('/full/<fname>')
+def full(fname):
+	'''
+	View the full data.
+	'''
+	global B
+	if not B:
+		redirect('/login')
+	#
+	finfo = B.decrypt_file(fname, True)
+	response.content_type = 'image/jpeg'
+	return finfo['data']
 
 
 @route(':filename#.*\.png|.*\.gif|.*\.jpg|.*\.ico|.*\.css|.*\.js#')

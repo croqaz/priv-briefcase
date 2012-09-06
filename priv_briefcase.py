@@ -357,9 +357,9 @@ class Briefcase:
 		return True
 
 
-	def decrypt_file(self, filename):
+	def decrypt_file(self, filename, bdata=True):
 		'''
-		Decrypt a file from the Briefcase and return all the original data.
+		Decrypt a file from the Briefcase and return all the original data, if needed.
 		'''
 		if not self._user_id:
 			print('Cannot decrypt file! Must sign-in first!')
@@ -375,21 +375,25 @@ class Briefcase:
 		fhash  = fd['hash']
 		bprev  = fd['preview']
 
-		if not fd['included']:
-			path = os.path.split(self._filename)[0]+os.sep+encr
-			bdata = open(path, 'rb').read()
-		else:
-			bdata = fd['data']
-
 		bprev = self._decrypt(bprev, salt)
-		bdata = self._decrypt(bdata, salt)
 
-		if fd['compressed']:
-			bdata = zlib.decompress(bdata)
+		# Maybe the data should not be decrypted? It's faster this way!
+		if bdata:
 
-		if fhash != MD4.new(bdata).digest():
-			print("Invalid decrypt! The hash doesn't match!")
-			return False
+			if not fd['included']:
+				path = os.path.split(self._filename)[0] + os.sep + encr
+				bdata = open(path, 'rb').read()
+			else:
+				bdata = fd['data']
+
+			bdata = self._decrypt(bdata, salt)
+
+			if fd['compressed']:
+				bdata = zlib.decompress(bdata)
+
+			if fhash != MD4.new(bdata).digest():
+				print("Invalid decrypt! The hash doesn't match!")
+				return False
 
 		return {
 			'labels' : labels,
@@ -459,6 +463,26 @@ class Briefcase:
 			print('Renamed file `%s` inside the briefcase.' % fname)
 		else:
 			print('Renamed file `%s` outside the briefcase.' % fname)
+		return True
+
+
+	def update_labels(self, filename, labels):
+		'''
+		Update labels for 1 file.
+		'''
+		fd = self._get_file_info(filename)
+		encr = fd['encr']
+
+		if type(labels) != type(list()) and type(labels) != type(tuple()):
+			print('Cannot add labels! Labels must be a List, or a Tuple, you provided `%s` !'\
+				% str(type(labels)) )
+			return False
+
+		salt = self._dict['files'][encr]['salt']
+		self._dict['files'][encr]['labels'] = self._encrypt(json.dumps(labels), salt)
+
+		print('Updated labels for `{0}` to: `{1}`.'.format(filename, labels))
+		self._dump()
 		return True
 
 #
