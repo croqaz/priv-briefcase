@@ -16,23 +16,28 @@ from priv_briefcase import Briefcase
 
 B = None
 USR = None
-FILE = 'test/test1.pkl'
 
 # # # # #
 
-def connect(usr=0, pwd=0):
+def connect(bname, usr=0, pwd=0):
 
 	global B, USR
 	USR = usr
 	#
-	if not os.path.exists(FILE):
-		B = Briefcase(FILE, create=True, logging=True)
+	if not os.path.exists(bname):
+		B = Briefcase(bname, create=True, logging=True)
 		print 'Created:', B, '\n'
 	else:
-		B = Briefcase(FILE, create=False, logging=True)
+		B = Briefcase(bname, create=False, logging=True)
 		print 'Opened:', B, '\n'
 	#
-	B.connect(usr, pwd, create=False)
+	r = B.connect(usr, pwd, create=False)
+	if not r:
+		r = B.connect(usr, pwd, create=True)
+		if r:
+			print('Done creating user.\n')
+	else:
+		print('Sign in ok.\n')
 
 
 @route('/login')
@@ -46,11 +51,12 @@ def login():
 @post('/login/')
 def login_post():
 
+	bname = request.POST.get('bname', '').strip()
 	usr = request.POST.get('usr', '').strip()
 	pwd = request.POST.get('pwd', '').strip()
 	#
-	if usr and pwd:
-		connect(usr, pwd)
+	if bname and usr and pwd:
+		connect(bname, usr, pwd)
 	#
 	redirect('/index')
 
@@ -197,7 +203,8 @@ def admin():
 	if not B:
 		redirect('/login')
 	#
-	return template('tmpl/admin.htm', user=USR)
+	logs = B.show_logs(False)
+	return template('tmpl/admin.htm', user=USR, logs=logs)
 
 
 @post('/admin')
@@ -224,7 +231,8 @@ def admin():
 		r = B.add_file((fname, bdata), labels, compress, included, overwrite)
 		if not r: print('Error adding file `{0}`!'.format(fname))
 	#
-	return template('tmpl/admin.htm', user=USR)
+	logs = B.show_logs(False)
+	return template('tmpl/admin.htm', user=USR, logs=logs)
 
 
 @route(':filename#.*\.png|.*\.gif|.*\.jpg|.*\.ico|.*\.css|.*\.js#')

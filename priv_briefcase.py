@@ -224,7 +224,7 @@ class Briefcase:
 		pass
 
 
-	def show_logs(self):
+	def show_logs(self, print_only=True):
 		'''
 		Print all logs for current user.
 		'''
@@ -232,15 +232,23 @@ class Briefcase:
 			print('Cannot decrypt logs! Must sign-in first!')
 			return False
 
+		logs = []
+
 		for k in self._dict['logs']:
 			log = self._dict['logs'][k]
 			# Skip other users
 			if log['usr_id'] != self._user_id:
 				continue
-			# Print the log. Ignore the microseconds
-			print('%s :: %s' % (k.split('.')[0], self._decrypt(log['msg'])) )
+			if print_only:
+				# Print the log. Ignore the microseconds
+				print( '%s :: %s' % (k.split('.')[0], self._decrypt(log['msg'])) )
+			else:
+				logs.append( '%s :: %s' % (k.split('.')[0], self._decrypt(log['msg'])) )
 
-		return True
+		if print_only:
+			return True
+		else:
+			return logs
 
 
 	def list_files(self):

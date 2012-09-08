@@ -26,33 +26,47 @@
 </div>
 </div>
 
-<br><br><div class="container">
+<div class="container"><br><br>
 
-<h2>Admin for `{{user}}`</h2><br><br>
+<h2>Admin for `{{user}}`</h2>
 
-<form method="post" enctype="multipart/form-data">
-	<legend>Add many files</legend>
-	<label>Browse files</label>
-	<input type="file" id="fname" name="fname[]" multiple="multiple" style="display:none"/>
-	<div class="input-append">
-		<input id="fnameText" class="span3" type="text" onclick="$('input[id=fname]').click();">
-		<a class="btn" onclick="$('input[id=fname]').click();">Browse</a>
-	</div>
-	<label>Mass labels/ tags</label>
-	<input type="text" class="span3" name="labels" placeholder="Labels/ tags separated by comma"/>
-	<br>
-	<label class="checkbox inline">
-		<input type="checkbox" id="compress" name="compress"/> Compress?
-	</label>
-	<label class="checkbox inline">
-		<input type="checkbox" id="included" name="included"/> Include?
-	</label>
-	<label class="checkbox inline">
-		<input type="checkbox" id="overwrite" name="overwrite"/> Overwrite?
-	</label>
-	<br><br>
-	<button type="submit" name="action" class="btn">Send files</button>
-</form>
+<ul class="nav nav-tabs">
+	<li class="active"><a href="#files" data-toggle="tab">Add files</a></li>
+	<li><a href="#logs" data-toggle="tab">Logs</a></li>
+</ul>
+
+<div class="tab-content">
+<div class="tab-pane active" id="files">
+	<form method="post" enctype="multipart/form-data">
+		<legend>Add many files</legend>
+		<label>Browse files</label>
+		<input type="file" id="fname" name="fname[]" multiple="multiple" style="display:none"/>
+		<div class="input-append">
+			<input id="fnameText" class="span3" type="text" onclick="$('input[id=fname]').click();">
+			<a class="btn" onclick="$('input[id=fname]').click();">Browse</a>
+		</div>
+		<label>Mass labels/ tags</label>
+		<input type="text" class="span3" name="labels" placeholder="Labels/ tags separated by comma"/>
+		<br>
+		<label class="checkbox inline">
+			<input type="checkbox" id="compress" name="compress"/> Compress?
+		</label>
+		<label class="checkbox inline">
+			<input type="checkbox" id="included" name="included"/> Include?
+		</label>
+		<label class="checkbox inline">
+			<input type="checkbox" id="overwrite" name="overwrite"/> Overwrite?
+		</label>
+		<br><br>
+		<button type="submit" name="action" class="btn">Send files</button>
+	</form>
+</div>
+
+<div class="tab-pane" id="logs">
+	<p>{{!'<br>'.join(logs)}}</p>
+</div>
+
+</div> <!-- /content -->
 
 </div> <!-- /container -->
 <!-- Le javascript -->
