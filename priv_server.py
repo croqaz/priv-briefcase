@@ -187,6 +187,46 @@ def full(fname):
 	return finfo['data']
 
 
+@route('/admin')
+@route('/admin/')
+def admin():
+	'''
+	Administrate.
+	'''
+	global B
+	if not B:
+		redirect('/login')
+	#
+	return template('tmpl/admin.htm', user=USR)
+
+
+@post('/admin')
+@post('/admin/')
+def admin():
+	'''
+	Administrate.
+	'''
+	global B
+	if not B:
+		redirect('/login')
+	#
+	objs = request.POST.getall('fname[]')
+	#
+	for fobj in objs:
+		fname = fobj.filename
+		bdata = fobj.value
+		#
+		labels = [x.strip() for x in request.POST.get('labels', '').split(',')]
+		compress  = request.POST.get('compress', '')
+		included  = request.POST.get('included', '')
+		overwrite = request.POST.get('overwrite', '')
+		#
+		r = B.add_file((fname, bdata), labels, compress, included, overwrite)
+		if not r: print('Error adding file `{0}`!'.format(fname))
+	#
+	return template('tmpl/admin.htm', user=USR)
+
+
 @route(':filename#.*\.png|.*\.gif|.*\.jpg|.*\.ico|.*\.css|.*\.js#')
 def server_static(filename=None):
 

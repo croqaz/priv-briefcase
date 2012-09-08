@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8"/>
-	<title>Private Briefcase: New</title>
+	<title>Private Briefcase: Admin</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 	<meta name="author" content="Cristi Constantin"/>
 	<meta name="description" content="Private Briefcase"/>
 	<link href="/static/bootstrap.min.css" rel="stylesheet"/>
+	<style>
+	img{ max-width:100%; height:auto; }
+	</style>
 	<!--[if lt IE 9]>
 	<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
 	<![endif]-->
@@ -17,23 +20,25 @@
 <div class="navbar-inner">
 	<div class="container"><ul class="nav">
 	<li><a href="/index">Home</a></li>
-	<li class="active"><a>New</a></li>
-	<li><a href="/admin">Admin</a></li>
+	<li><a href="/new">New</a></li>
+	<li class="active"><a>Admin</a></li>
 	</ul></div>
 </div>
 </div>
 
-<br><div class="container"><br><br>
+<br><br><div class="container">
+
+<h2>Admin for `{{user}}`</h2><br><br>
 
 <form method="post" enctype="multipart/form-data">
-	<legend>New item</legend>
-	<label>Browse file</label>
-	<input type="file" id="fname" name="fname" style="display:none"/>
+	<legend>Add many files</legend>
+	<label>Browse files</label>
+	<input type="file" id="fname" name="fname[]" multiple="multiple" style="display:none"/>
 	<div class="input-append">
 		<input id="fnameText" class="span3" type="text" onclick="$('input[id=fname]').click();">
 		<a class="btn" onclick="$('input[id=fname]').click();">Browse</a>
 	</div>
-	<label>Type labels/ tags</label>
+	<label>Mass labels/ tags</label>
 	<input type="text" class="span3" name="labels" placeholder="Labels/ tags separated by comma"/>
 	<br>
 	<label class="checkbox inline">
@@ -46,7 +51,7 @@
 		<input type="checkbox" id="overwrite" name="overwrite"/> Overwrite?
 	</label>
 	<br><br>
-	<button type="submit" name="action" class="btn">Add file</button>
+	<button type="submit" name="action" class="btn">Send files</button>
 </form>
 
 </div> <!-- /container -->
@@ -55,7 +60,13 @@
 <script src="/static/bootstrap.min.js"></script>
 <script type="text/javascript">
 $('input[id=fname]').change(function() {
-	$('#fnameText').val($(this).val());
+	var input = document.getElementById('fname');
+	var flist = [];
+	// for every file...
+	for (var x = 0; x < input.files.length; x++) {
+		flist.push( input.files[x].name );
+	}
+	$('#fnameText').val(flist);
 });
 </script>
 </body>
